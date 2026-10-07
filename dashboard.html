@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AcademoGest - Sistema de Gestão e Desempenho Académico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Verificação imediata de sessão: se não estiver ativa, redireciona para o login
+        if (localStorage.getItem('academoGest_sessao') !== 'ativa') {
+            window.location.replace('index.html'); // Altere para o nome do seu ficheiro de login se necessário
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#3b82f6',
+                        lightBg: '#f8fafc',
+                        cardBg: '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Topbar -->
+    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg shadow-md">
+                <i class="fa-solid fa-graduation-cap text-xl"></i>
+            </div>
+            <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">AcademoGest</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="text-sm text-slate-600 hidden sm:inline"><i class="fa-solid fa-chalkboard-user mr-2 text-blue-600"></i>Painel do Docente</span>
+            <div class="h-8 w-px bg-slate-200"></div>
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                    <div class="w-9 h-9 rounded-full bg-blue-600 flex items-center font-bold text-white justify-center shadow-sm">NG</div>
+                    <span class="text-sm font-semibold text-slate-700 hidden md:inline">Prof. Nelson Gonga</span>
+                </div>
+                <!-- Botão de Sair / Terminar Sessão -->
+                <button onclick="logoutSistema()" title="Terminar Sessão" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-xl text-sm font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">Sair</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shadow-sm">
+            <nav class="flex-1 px-4 py-6 space-y-1.5">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-blue-600 text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-chart-pie w-5"></i><span>Dashboard</span>
+                </button>
+                <button onclick="switchTab('institutions')" id="nav-institutions" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-building-columns w-5"></i><span>Gestão de Instituições</span>
+                </button>
+                <button onclick="switchTab('courses')" id="nav-courses" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-book-bookmark w-5"></i><span>Cursos, Turmas & Salas</span>
+                </button>
+                <button onclick="switchTab('disciplines')" id="nav-disciplines" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-book w-5"></i><span>Menu de Disciplinas</span>
+                </button>
+                <button onclick="switchTab('students')" id="nav-students" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-users w-5"></i><span>Gestão de Estudantes</span>
+                </button>
+                <button onclick="switchTab('grades')" id="nav-grades" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-file-pen w-5"></i><span>Lançamento de Provas</span>
+                </button>
+                <button onclick="switchTab('transfers')" id="nav-transfers" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                    <i class="fa-solid fa-right-left w-5"></i><span>Transferências</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-200 text-xs text-slate-400 text-center">
+                AcademoGest v2.6 &copy; 2026
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
+
+            <!-- TAB: DASHBOARD -->
+            <section id="tab-dashboard" class="space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Dashboard Geral</h1>
+                        <p class="text-sm text-slate-500">Visão consolidada do desempenho académico e estatísticas das turmas.</p>
+                    </div>
+                    <button onclick="switchTab('grades')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Nova Nota</span>
+                    </button>
+                </div>
+
+                <!-- Filters Bar for Dashboard Performance -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Filtrar Instituição</label>
+                        <select id="dashFilterInst" onchange="updateDashboardFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas Instituições</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Filtrar Curso</label>
+                        <select id="dashFilterCourse" onchange="updateDashboardFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos os Cursos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Filtrar Turma</label>
+                        <select id="dashFilterTurma" onchange="updateDashboardFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas as Turmas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Filtrar Turno</label>
+                        <select id="dashFilterTurno" onchange="updateDashboardFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos os Turnos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Filtrar Sala</label>
+                        <select id="dashFilterSala" onchange="updateDashboardFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas as Salas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Metrics Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Estudantes</p>
+                                <h3 id="stat-total-students" class="text-3xl font-bold text-slate-900 mt-2">0</h3>
+                            </div>
+                            <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i class="fa-solid fa-users text-lg"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Instituições Ativas</p>
+                                <h3 id="stat-total-institutions" class="text-3xl font-bold text-slate-900 mt-2">0</h3>
+                            </div>
+                            <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-building-columns text-lg"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Disciplinas</p>
+                                <h3 id="stat-total-disciplines" class="text-3xl font-bold text-slate-900 mt-2">0</h3>
+                            </div>
+                            <div class="bg-amber-50 text-amber-600 p-3 rounded-xl"><i class="fa-solid fa-book text-lg"></i></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Taxa Dispensa Média</p>
+                                <h3 id="stat-dispense-rate" class="text-3xl font-bold text-slate-900 mt-2">0%</h3>
+                            </div>
+                            <div class="bg-purple-50 text-purple-600 p-3 rounded-xl"><i class="fa-solid fa-award text-lg"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts and Quick Tables -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 lg:col-span-2 shadow-sm">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4">Desempenho Geral de Notas (Filtros Aplicados)</h3>
+                        <div class="h-72">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 mb-2">Regras Académicas (Escala 20/20)</h3>
+                            <ul class="space-y-3 text-sm text-slate-600 mt-4">
+                                <li class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-check-circle text-emerald-500 mt-1"></i>
+                                    <span><strong>Dispensa:</strong> Média das Provas Parcelares <strong>>= 14</strong>.</span>
+                                </li>
+                                <li class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-1"></i>
+                                    <span><strong>Recurso:</strong> Necessário se Média Final com Exame <strong><= 9</strong>.</span>
+                                </li>
+                                <li class="flex items-start space-x-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-1"></i>
+                                    <span><strong>Exame Especial:</strong> Se Recurso <strong><= 9</strong>.</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+                            <span class="text-xs text-slate-400">Sistema adaptado para Ensino Superior em Angola.</span>
+                            <button onclick="confirmResetSystemData()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Repor Sistema</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: INSTITUTIONS -->
+            <section id="tab-institutions" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Gestão de Instituições</h1>
+                        <p class="text-sm text-slate-500">Visualize, edite ou elimine instituições (apenas se não houver estudantes registados).</p>
+                    </div>
+                    <button onclick="openInstitutionModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Adicionar Instituição</span>
+                    </button>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Nome da Instituição</th>
+                                <th class="p-4">Sigla</th>
+                                <th class="p-4">Localização / Província</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="institutionsTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB: COURSES & TURMAS -->
+            <section id="tab-courses" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Cursos, Turmas, Turnos e Salas</h1>
+                        <p class="text-sm text-slate-500">Gestão operacional de estruturas físicas e curriculares.</p>
+                    </div>
+                    <button onclick="openCourseModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Nova Estrutura</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="coursesGrid">
+                    <!-- JS populated -->
+                </div>
+            </section>
+
+            <!-- TAB: DISCIPLINES -->
+            <section id="tab-disciplines" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Menu de Disciplinas</h1>
+                        <p class="text-sm text-slate-500">Registo de disciplinas, modelos de avaliação e vinculação dinâmica a cursos.</p>
+                    </div>
+                    <button onclick="openDisciplineModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Nova Disciplina</span>
+                    </button>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4">Disciplina</th>
+                                <th class="p-4">Instituição</th>
+                                <th class="p-4">Curso Vinculado</th>
+                                <th class="p-4">Modelo da 1ª Prova Parcelar</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="disciplinesTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB: STUDENTS -->
+            <section id="tab-students" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Gestão de Estudantes</h1>
+                        <p class="text-sm text-slate-500">Estudantes matriculados com base nos dados reais do sistema.</p>
+                    </div>
+                    <button onclick="openStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-user-plus"></i><span>Matricular Estudante</span>
+                    </button>
+                </div>
+
+                <!-- Filters Bar for Students -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Instituição</label>
+                        <select id="studentFilterInst" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Curso</label>
+                        <select id="studentFilterCourse" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Turma</label>
+                        <select id="studentFilterTurma" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Turno</label>
+                        <select id="studentFilterTurno" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Sala</label>
+                        <select id="studentFilterSala" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Disciplina</label>
+                        <select id="studentFilterDisc" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4">Nº Estudante</th>
+                                <th class="p-4">Nome Completo</th>
+                                <th class="p-4">Instituição / Curso</th>
+                                <th class="p-4">Turma / Turno / Sala</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB: GRADES -->
+            <section id="tab-grades" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Lançamento de Provas e Desempenho</h1>
+                        <p class="text-sm text-slate-500">Registo de notas por avaliações contínuas, exames, recurso e exame especial.</p>
+                    </div>
+                </div>
+
+                <!-- Filters Bar for Grades -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Instituição</label>
+                        <select id="gradeFilterInst" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Curso</label>
+                        <select id="gradeFilterCourse" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Turma</label>
+                        <select id="gradeFilterTurma" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Turno</label>
+                        <select id="gradeFilterTurno" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Sala</label>
+                        <select id="gradeFilterSala" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold uppercase text-slate-400 mb-1">Disciplina</label>
+                        <select id="gradeFilterDisc" onchange="renderAll()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="p-4">Estudante</th>
+                                <th class="p-4">1ª Parcelar</th>
+                                <th class="p-4">2ª Parcelar</th>
+                                <th class="p-4">Média Parc.</th>
+                                <th class="p-4">Exame</th>
+                                <th class="p-4">Recurso</th>
+                                <th class="p-4">Especial</th>
+                                <th class="p-4">Estado / Situação</th>
+                                <th class="p-4 text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradesTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB: TRANSFERS -->
+            <section id="tab-transfers" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900">Transferência de Estudantes</h1>
+                        <p class="text-sm text-slate-500">Transfira estudantes mantendo o histórico de notas inalterado.</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-2xl">
+                    <form id="transferForm" onsubmit="prepareTransfer(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Selecionar Estudante</label>
+                            <select id="transferStudentSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                                <!-- JS populated -->
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Novo Curso</label>
+                                <select id="transferNewCourse" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                                    <!-- populated -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nova Turma</label>
+                                <select id="transferNewTurma" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                                    <!-- populated -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Novo Turno</label>
+                                <select id="transferNewTurno" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                                    <option value="Manhã">Manhã</option>
+                                    <option value="Tarde">Tarde</option>
+                                    <option value="Pós-Laboral">Pós-Laboral</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nova Sala</label>
+                                <select id="transferNewSala" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                                    <!-- populated -->
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-md shadow-blue-500/20 transition">
+                            Efetivar Transferência (Preservando Notas)
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Institution Modal -->
+    <div id="institutionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 id="instModalTitle" class="text-xl font-bold text-slate-900 mb-4">Adicionar Instituição</h3>
+            <form onsubmit="prepareSaveInstitution(event)" class="space-y-4">
+                <input type="hidden" id="editInstId">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome da Instituição</label>
+                    <input type="text" id="instName" required placeholder="Ex: ISPAJ / IMETRO" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sigla</label>
+                    <input type="text" id="instAcronym" required placeholder="Ex: ISPAJ" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Localização</label>
+                    <input type="text" id="instLocation" required placeholder="Ex: Luanda, Viana" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('institutionModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Course Modal -->
+    <div id="courseModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 id="courseModalTitle" class="text-xl font-bold text-slate-900 mb-4">Cadastrar Curso & Turma</h3>
+            <form onsubmit="prepareSaveCourse(event)" class="space-y-4">
+                <input type="hidden" id="editCourseId">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Instituição</label>
+                    <select id="courseInstSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome do Curso</label>
+                    <input type="text" id="courseName" required placeholder="Ex: Engenharia Informática" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Turma</label>
+                        <input type="text" id="courseTurma" required placeholder="Ex: 3INF1" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Turno</label>
+                        <select id="courseTurno" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <option value="Manhã">Manhã</option>
+                            <option value="Tarde">Tarde</option>
+                            <option value="Pós-Laboral">Pós-Laboral</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sala</label>
+                    <input type="text" id="courseSala" required placeholder="Ex: Lab 03" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('courseModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Discipline Modal -->
+    <div id="disciplineModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 id="discModalTitle" class="text-xl font-bold text-slate-900 mb-4">Adicionar Disciplina</h3>
+            <form onsubmit="prepareSaveDiscipline(event)" class="space-y-4">
+                <input type="hidden" id="editDiscId">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome da Disciplina</label>
+                    <input type="text" id="discName" required placeholder="Ex: Arquitectura de Redes" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Instituição</label>
+                    <select id="discInstSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Curso Vinculado</label>
+                    <select id="discCourseSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                        <!-- Dynamically populated from existing courses -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Modelo da 1ª Prova Parcelar</label>
+                    <select id="discModel" onchange="toggleNumEvaluations()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                        <option value="Avaliação Contínua">Avaliação Contínua de N avaliações</option>
+                        <option value="Prova Única">Prova Única Parcelar</option>
+                    </select>
+                </div>
+                <div id="numEvalContainer" class="hidden">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Número de Avaliações Contínuas</label>
+                    <select id="discNumEval" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                        <option value="2">2 Avaliações</option>
+                        <option value="3">3 Avaliações</option>
+                        <option value="4">4 Avaliações</option>
+                        <option value="5">5 Avaliações</option>
+                        <option value="6">6 Avaliações</option>
+                        <option value="7">7 Avaliações</option>
+                        <option value="8">8 Avaliações</option>
+                        <option value="9">9 Avaliações</option>
+                        <option value="10">10 Avaliações</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('disciplineModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Modal -->
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+            <h3 id="studentModalTitle" class="text-xl font-bold text-slate-900 mb-4">Matricular Novo Estudante</h3>
+            <form onsubmit="prepareSaveStudent(event)" class="space-y-4">
+                <input type="hidden" id="editStudentId">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nº de Estudante</label>
+                        <input type="text" id="stdNumber" required placeholder="Ex: 20260142" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sexo</label>
+                        <select id="stdGender" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nome Completo</label>
+                    <input type="text" id="stdName" required placeholder="Ex: Carlos Alberto Manuel" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Email</label>
+                        <input type="email" id="stdEmail" required placeholder="carlos@mail.com" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Telefone</label>
+                        <input type="text" id="stdPhone" required placeholder="+244 923..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Instituição</label>
+                        <select id="stdInstSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <!-- populated -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Curso</label>
+                        <select id="stdCourseSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <!-- populated -->
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Turma</label>
+                        <select id="stdTurmaSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <!-- populated -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Turno</label>
+                        <select id="stdTurnoSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <!-- populated -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sala</label>
+                        <select id="stdSalaSelect" required class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-800 focus:outline-none focus:border-blue-500">
+                            <!-- populated -->
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('studentModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">Matricular</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Grades Modal -->
+    <div id="gradesModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 class="text-xl font-bold text-slate-900 mb-1" id="modalStudentTitle">Lançar Provas</h3>
+            <p class="text-xs text-slate-500 mb-4" id="modalDisciplineSubtitle">Escala de 0 a 20 valores.</p>
+            <form onsubmit="prepareSaveGrades(event)" class="space-y-3">
+                <input type="hidden" id="gradeStudentId">
+                
+                <!-- Dynamic Continuous Evaluations Container -->
+                <div id="continuousEvaluationsSection" class="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-bold uppercase text-slate-600">Avaliações Contínuas (1ª Prova Parcelar)</label>
+                    <div id="evalInputsList" class="space-y-2">
+                        <!-- Dynamically generated inputs for Avaliação 1, 2, ... N -->
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">1ª Prova Parcelar (Calculada / Consolidada)</label>
+                    <input type="number" step="0.1" min="0" max="20" id="gradeP1" readonly class="w-full bg-slate-100 border border-slate-200 rounded-lg p-2.5 text-slate-700 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">2ª Prova Parcelar (Bloqueada se 1ª incompleta)</label>
+                    <input type="number" step="0.1" min="0" max="20" id="gradeP2" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Exame (Liberado se não dispensado)</label>
+                    <input type="number" step="0.1" min="0" max="20" id="gradeExame" value="0" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Recurso (Liberado se Média Final $\le 9$)</label>
+                    <input type="number" step="0.1" min="0" max="20" id="gradeRecurso" value="0" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Exame Especial (Liberado se Recurso $\le 9$)</label>
+                    <input type="number" step="0.1" min="0" max="20" id="gradeEspecial" value="0" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('gradesModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm">Validar & Gravar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- UNIVERSAL CONFIRMATION MODAL -->
+    <div id="confirmationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center space-y-4">
+            <div id="confirmModalIcon" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 id="confirmModalTitle" class="text-lg font-bold text-slate-900">Confirmar Ação</h3>
+                <p id="confirmModalMessage" class="text-sm text-slate-500 mt-1">Deseja realmente prosseguir com esta operação?</p>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="closeModal('confirmationModal')" class="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition">Cancelar</button>
+                <button type="button" id="confirmModalActionBtn" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic Script with LocalStorage -->
+    <script>
+        // Função para terminar a sessão
+        function logoutSistema() {
+            showConfirmationModal(
+                'Terminar Sessão',
+                'Deseja realmente sair do sistema AcademoGest?',
+                () => {
+                    localStorage.removeItem('academoGest_sessao');
+                    window.location.replace('index.html'); // Redireciona para o login substituindo o histórico
+                },
+                true
+            );
+        }
+
+        // State management backed by LocalStorage (initialized empty/zerada)
+        let db = {
+            institutions: [],
+            courses: [],
+            disciplines: [],
+            students: []
+        };
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('academogest_db');
+            if (saved) {
+                try {
+                    db = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Erro ao carregar dados do localStorage", e);
+                }
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('academogest_db', JSON.stringify(db));
+        }
+
+        // Universal Confirmation Modal Trigger
+        function showConfirmationModal(title, message, callback, isDestructive = false) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalMessage').innerText = message;
+            
+            const iconDiv = document.getElementById('confirmModalIcon');
+            const actionBtn = document.getElementById('confirmModalActionBtn');
+            
+            if(isDestructive) {
+                iconDiv.className = "w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl";
+                actionBtn.className = "flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-medium shadow-md shadow-rose-500/20 transition";
+            } else {
+                iconDiv.className = "w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl";
+                actionBtn.className = "flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition";
+            }
+
+            actionBtn.onclick = function() {
+                closeModal('confirmationModal');
+                callback();
+            };
+
+            openModal('confirmationModal');
+        }
+
+        // Tab Navigation
+        function switchTab(tabId) {
+            ['dashboard', 'institutions', 'courses', 'disciplines', 'students', 'grades', 'transfers'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if(navBtn) {
+                    navBtn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-all";
+                }
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if(activeBtn) {
+                activeBtn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-blue-600 text-white shadow-md shadow-blue-500/20";
+            }
+            renderAll();
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+            if(modalId !== 'confirmationModal') populateSelects();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function populateSelects() {
+            const instSelects = ['courseInstSelect', 'discInstSelect', 'stdInstSelect', 'dashFilterInst', 'studentFilterInst', 'gradeFilterInst'];
+            instSelects.forEach(id => {
+                const sel = document.getElementById(id);
+                if(sel) {
+                    const currentVal = sel.value;
+                    let optionsHtml = (id.includes('dashFilter') || id.includes('Filter')) ? '<option value="">Todas Instituições</option>' : '';
+                    optionsHtml += db.institutions.map(i => `<option value="${i.acronym}">${i.name} (${i.acronym})</option>`).join('');
+                    sel.innerHTML = optionsHtml;
+                    sel.value = currentVal;
+                }
+            });
+
+            const courseSelects = ['discCourseSelect', 'stdCourseSelect', 'transferNewCourse', 'dashFilterCourse', 'studentFilterCourse', 'gradeFilterCourse'];
+            courseSelects.forEach(id => {
+                const sel = document.getElementById(id);
+                if(sel) {
+                    const currentVal = sel.value;
+                    let optionsHtml = (id.includes('dashFilter') || id.includes('Filter')) ? '<option value="">Todos os Cursos</option>' : '';
+                    const uniqueCourses = [...new Set(db.courses.map(c => c.name))];
+                    optionsHtml += uniqueCourses.map(c => `<option value="${c}">${c}</option>`).join('');
+                    sel.innerHTML = optionsHtml;
+                    sel.value = currentVal;
+                }
+            });
+
+            populateDynamicDropdown('stdTurmaSelect', db.courses.map(c => c.turma));
+            populateDynamicDropdown('transferNewTurma', db.courses.map(c => c.turma));
+            populateDynamicDropdown('dashFilterTurma', db.courses.map(c => c.turma), 'Todas as Turmas');
+            populateDynamicDropdown('studentFilterTurma', db.courses.map(c => c.turma), 'Todas as Turmas');
+            populateDynamicDropdown('gradeFilterTurma', db.courses.map(c => c.turma), 'Todas as Turmas');
+
+            populateDynamicDropdown('stdTurnoSelect', ['Manhã', 'Tarde', 'Pós-Laboral']);
+            populateDynamicDropdown('transferNewTurno', ['Manhã', 'Tarde', 'Pós-Laboral']);
+            populateDynamicDropdown('dashFilterTurno', ['Manhã', 'Tarde', 'Pós-Laboral'], 'Todos os Turnos');
+            populateDynamicDropdown('studentFilterTurno', ['Manhã', 'Tarde', 'Pós-Laboral'], 'Todos os Turnos');
+            populateDynamicDropdown('gradeFilterTurno', ['Manhã', 'Tarde', 'Pós-Laboral'], 'Todos os Turnos');
+
+            populateDynamicDropdown('stdSalaSelect', db.courses.map(c => c.sala));
+            populateDynamicDropdown('transferNewSala', db.courses.map(c => c.sala));
+            populateDynamicDropdown('dashFilterSala', db.courses.map(c => c.sala), 'Todas as Salas');
+            populateDynamicDropdown('studentFilterSala', db.courses.map(c => c.sala), 'Todas as Salas');
+            populateDynamicDropdown('gradeFilterSala', db.courses.map(c => c.sala), 'Todas as Salas');
+
+            const discFilters = ['studentFilterDisc', 'gradeFilterDisc'];
+            discFilters.forEach(id => {
+                const sel = document.getElementById(id);
+                if(sel) {
+                    const currentVal = sel.value;
+                    let optionsHtml = '<option value="">Todas as Disciplinas</option>';
+                    optionsHtml += db.disciplines.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+                    sel.innerHTML = optionsHtml;
+                    sel.value = currentVal;
+                }
+            });
+
+            const transferSel = document.getElementById('transferStudentSelect');
+            if(transferSel) {
+                transferSel.innerHTML = db.students.map(s => `<option value="${s.id}">${s.number} - ${s.name} (${s.course} / ${s.turma})</option>`).join('');
+            }
+        }
+
+        function populateDynamicDropdown(elementId, values, defaultLabel = '') {
+            const sel = document.getElementById(elementId);
+            if(sel) {
+                const currentVal = sel.value;
+                let html = defaultLabel ? `<option value="">${defaultLabel}</option>` : '';
+                const uniqueVals = [...new Set(values)];
+                html += uniqueVals.map(v => `<option value="${v}">${v}</option>`).join('');
+                sel.innerHTML = html;
+                sel.value = currentVal;
+            }
+        }
+
+        function toggleNumEvaluations() {
+            const model = document.getElementById('discModel').value;
+            const container = document.getElementById('numEvalContainer');
+            if(model === 'Avaliação Contínua') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        // Institution Actions with Confirmation
+        function openInstitutionModal(id = null) {
+            document.getElementById('editInstId').value = id || '';
+            document.getElementById('instModalTitle').innerText = id ? 'Editar Instituição' : 'Adicionar Instituição';
+            if(id) {
+                const inst = db.institutions.find(i => i.id === id);
+                document.getElementById('instName').value = inst.name;
+                document.getElementById('instAcronym').value = inst.acronym;
+                document.getElementById('instLocation').value = inst.location;
+            } else {
+                document.getElementById('instName').value = '';
+                document.getElementById('instAcronym').value = '';
+                document.getElementById('instLocation').value = '';
+            }
+            openModal('institutionModal');
+        }
+
+        function prepareSaveInstitution(e) {
+            e.preventDefault();
+            closeModal('institutionModal');
+            showConfirmationModal(
+                'Guardar Instituição',
+                'Tem certeza que deseja gravar os dados desta instituição?',
+                () => {
+                    const id = document.getElementById('editInstId').value;
+                    const name = document.getElementById('instName').value;
+                    const acronym = document.getElementById('instAcronym').value;
+                    const location = document.getElementById('instLocation').value;
+
+                    if(id) {
+                        const inst = db.institutions.find(i => i.id == id);
+                        inst.name = name;
+                        inst.acronym = acronym;
+                        inst.location = location;
+                    } else {
+                        db.institutions.push({ id: Date.now(), name, acronym, location });
+                    }
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            );
+        }
+
+        function deleteInstitution(id) {
+            const inst = db.institutions.find(i => i.id === id);
+            const hasStudents = db.students.some(s => s.institution === inst.acronym || s.institution === inst.name);
+            if(hasStudents) {
+                alert(`Não é possível eliminar a instituição ${inst.name} pois existem estudantes registados nela.`);
+                return;
+            }
+            showConfirmationModal(
+                'Eliminar Instituição',
+                `Tem certeza que deseja eliminar permanentemente a instituição ${inst.name}?`,
+                () => {
+                    db.institutions = db.institutions.filter(i => i.id !== id);
+                    saveToLocalStorage();
+                    renderAll();
+                },
+                true
+            );
+        }
+
+        // Course Actions with Confirmation
+        function openCourseModal(id = null) {
+            document.getElementById('editCourseId').value = id || '';
+            document.getElementById('courseModalTitle').innerText = id ? 'Editar Curso & Turma' : 'Cadastrar Curso & Turma';
+            populateSelects();
+            if(id) {
+                const c = db.courses.find(item => item.id === id);
+                document.getElementById('courseInstSelect').value = c.institution;
+                document.getElementById('courseName').value = c.name;
+                document.getElementById('courseTurma').value = c.turma;
+                document.getElementById('courseTurno').value = c.turno;
+                document.getElementById('courseSala').value = c.sala;
+            } else {
+                document.getElementById('courseName').value = '';
+                document.getElementById('courseTurma').value = '';
+                document.getElementById('courseSala').value = '';
+            }
+            openModal('courseModal');
+        }
+
+        function prepareSaveCourse(e) {
+            e.preventDefault();
+            closeModal('courseModal');
+            showConfirmationModal(
+                'Guardar Estrutura',
+                'Deseja confirmar o registo deste curso e turma?',
+                () => {
+                    const id = document.getElementById('editCourseId').value;
+                    const institution = document.getElementById('courseInstSelect').value;
+                    const name = document.getElementById('courseName').value;
+                    const turma = document.getElementById('courseTurma').value;
+                    const turno = document.getElementById('courseTurno').value;
+                    const sala = document.getElementById('courseSala').value;
+
+                    if(id) {
+                        const c = db.courses.find(item => item.id == id);
+                        c.institution = institution;
+                        c.name = name;
+                        c.turma = turma;
+                        c.turno = turno;
+                        c.sala = sala;
+                    } else {
+                        db.courses.push({ id: Date.now(), institution, name, turma, turno, sala });
+                    }
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            );
+        }
+
+        function deleteCourse(id) {
+            const c = db.courses.find(item => item.id === id);
+            const hasStudents = db.students.some(s => s.course === c.name && s.turma === c.turma);
+            if(hasStudents) {
+                alert(`Não é possível eliminar este curso/turma pois existem estudantes registados.`);
+                return;
+            }
+            showConfirmationModal(
+                'Eliminar Curso/Turma',
+                'Tem certeza que deseja eliminar esta estrutura?',
+                () => {
+                    db.courses = db.courses.filter(item => item.id !== id);
+                    saveToLocalStorage();
+                    renderAll();
+                },
+                true
+            );
+        }
+
+        // Discipline Actions with Confirmation
+        function openDisciplineModal(id = null) {
+            document.getElementById('editDiscId').value = id || '';
+            document.getElementById('discModalTitle').innerText = id ? 'Editar Disciplina' : 'Adicionar Disciplina';
+            populateSelects();
+            toggleNumEvaluations();
+            if(id) {
+                const d = db.disciplines.find(item => item.id === id);
+                document.getElementById('discName').value = d.name;
+                document.getElementById('discInstSelect').value = d.institution;
+                document.getElementById('discCourseSelect').value = d.course;
+                document.getElementById('discModel').value = d.model;
+                if(d.model === 'Avaliação Contínua') {
+                    document.getElementById('discNumEval').value = d.numEval || 3;
+                }
+                toggleNumEvaluations();
+            } else {
+                document.getElementById('discName').value = '';
+            }
+            openModal('disciplineModal');
+        }
+
+        function prepareSaveDiscipline(e) {
+            e.preventDefault();
+            closeModal('disciplineModal');
+            showConfirmationModal(
+                'Guardar Disciplina',
+                'Deseja gravar as configurações desta disciplina?',
+                () => {
+                    const id = document.getElementById('editDiscId').value;
+                    const name = document.getElementById('discName').value;
+                    const institution = document.getElementById('discInstSelect').value;
+                    const course = document.getElementById('discCourseSelect').value;
+                    const model = document.getElementById('discModel').value;
+                    const numEval = model === 'Avaliação Contínua' ? parseInt(document.getElementById('discNumEval').value) : 1;
+
+                    if(id) {
+                        const d = db.disciplines.find(item => item.id == id);
+                        d.name = name;
+                        d.institution = institution;
+                        d.course = course;
+                        d.model = model;
+                        d.numEval = numEval;
+                    } else {
+                        db.disciplines.push({ id: Date.now(), name, institution, course, model, numEval });
+                    }
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            );
+        }
+
+        function deleteDiscipline(id) {
+            const d = db.disciplines.find(item => item.id === id);
+            showConfirmationModal(
+                'Eliminar Disciplina',
+                `Tem certeza que deseja eliminar a disciplina ${d.name}?`,
+                () => {
+                    db.disciplines = db.disciplines.filter(item => item.id !== id);
+                    saveToLocalStorage();
+                    renderAll();
+                },
+                true
+            );
+        }
+
+        // Student Actions with Confirmation
+        function openStudentModal(id = null) {
+            document.getElementById('editStudentId').value = id || '';
+            document.getElementById('studentModalTitle').innerText = id ? 'Editar Estudante' : 'Matricular Novo Estudante';
+            populateSelects();
+            if(id) {
+                const s = db.students.find(item => item.id === id);
+                document.getElementById('stdNumber').value = s.number;
+                document.getElementById('stdName').value = s.name;
+                document.getElementById('stdGender').value = s.gender;
+                document.getElementById('stdEmail').value = s.email;
+                document.getElementById('stdPhone').value = s.phone;
+                document.getElementById('stdInstSelect').value = s.institution;
+                document.getElementById('stdCourseSelect').value = s.course;
+                document.getElementById('stdTurmaSelect').value = s.turma;
+                document.getElementById('stdTurnoSelect').value = s.turno;
+                document.getElementById('stdSalaSelect').value = s.sala;
+            } else {
+                document.getElementById('stdNumber').value = '';
+                document.getElementById('stdName').value = '';
+                document.getElementById('stdEmail').value = '';
+                document.getElementById('stdPhone').value = '';
+            }
+            openModal('studentModal');
+        }
+
+        function prepareSaveStudent(e) {
+            e.preventDefault();
+            closeModal('studentModal');
+            showConfirmationModal(
+                'Matricular / Atualizar Estudante',
+                'Deseja confirmar a gravação dos dados deste estudante?',
+                () => {
+                    const id = document.getElementById('editStudentId').value;
+                    const number = document.getElementById('stdNumber').value;
+                    const name = document.getElementById('stdName').value;
+                    const gender = document.getElementById('stdGender').value;
+                    const email = document.getElementById('stdEmail').value;
+                    const phone = document.getElementById('stdPhone').value;
+                    const institution = document.getElementById('stdInstSelect').value;
+                    const course = document.getElementById('stdCourseSelect').value;
+                    const turma = document.getElementById('stdTurmaSelect').value;
+                    const turno = document.getElementById('stdTurnoSelect').value;
+                    const sala = document.getElementById('stdSalaSelect').value;
+
+                    if(id) {
+                        const s = db.students.find(item => item.id == id);
+                        s.number = number;
+                        s.name = name;
+                        s.gender = gender;
+                        s.email = email;
+                        s.phone = phone;
+                        s.institution = institution;
+                        s.course = course;
+                        s.turma = turma;
+                        s.turno = turno;
+                        s.sala = sala;
+                    } else {
+                        db.students.push({
+                            id: Date.now(), number, name, gender, email, phone, institution, course, turma, turno, sala,
+                            evals: [0, 0, 0], p1: 0, p2: 0, exame: 0, recurso: 0, especial: 0
+                        });
+                    }
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            );
+        }
+
+        function deleteStudent(id) {
+            const s = db.students.find(item => item.id === id);
+            showConfirmationModal(
+                'Eliminar Estudante',
+                `Tem certeza que deseja eliminar o estudante ${s.name}?`,
+                () => {
+                    db.students = db.students.filter(item => item.id !== id);
+                    saveToLocalStorage();
+                    renderAll();
+                },
+                true
+            );
+        }
+
+        function prepareTransfer(e) {
+            e.preventDefault();
+            const studentId = parseInt(document.getElementById('transferStudentSelect').value);
+            const student = db.students.find(s => s.id === studentId);
+            if(student) {
+                showConfirmationModal(
+                    'Efetivar Transferência',
+                    `Deseja transferir o estudante ${student.name} para a nova turma preservando o histórico de notas?`,
+                    () => {
+                        student.course = document.getElementById('transferNewCourse').value;
+                        student.turma = document.getElementById('transferNewTurma').value;
+                        student.turno = document.getElementById('transferNewTurno').value;
+                        student.sala = document.getElementById('transferNewSala').value;
+                        saveToLocalStorage();
+                        alert(`Estudante ${student.name} transferido com sucesso!`);
+                        switchTab('students');
+                    }
+                );
+            }
+        }
+
+        // Grades & Dynamic Continuous Evaluations UI
+        function openGradeModal(studentId) {
+            const student = db.students.find(s => s.id === studentId);
+            if(student) {
+                document.getElementById('gradeStudentId').value = student.id;
+                document.getElementById('modalStudentTitle').innerText = `Lançar Notas: ${student.name}`;
+                
+                const selectedDiscName = document.getElementById('gradeFilterDisc')?.value;
+                const disc = db.disciplines.find(d => d.name === selectedDiscName) || 
+                             db.disciplines.find(d => d.institution === student.institution && d.course === student.course) || 
+                             db.disciplines[0] || { name: 'Disciplina Padrão', model: 'Avaliação Contínua', numEval: 3 };
+
+                document.getElementById('modalDisciplineSubtitle').innerText = `Disciplina: ${disc.name} (${disc.model} - ${disc.numEval || 1} avaliações)`;
+
+                const evalListContainer = document.getElementById('evalInputsList');
+                evalListContainer.innerHTML = '';
+                
+                if(!student.evals || student.evals.length !== (disc.numEval || 3)) {
+                    student.evals = new Array(disc.numEval || 3).fill(0);
+                }
+
+                for(let i = 0; i < (disc.numEval || 3); i++) {
+                    evalListContainer.innerHTML += `
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-slate-700">Avaliação ${i + 1}</span>
+                            <input type="number" step="0.1" min="0" max="20" value="${student.evals[i] || 0}" oninput="calculateContinuousP1()" data-eval-index="${i}" class="eval-input w-28 bg-white border border-slate-300 rounded-lg p-1.5 text-slate-800 text-sm text-center focus:outline-none focus:border-blue-500">
+                        </div>
+                    `;
+                }
+
+                document.getElementById('gradeP1').value = student.p1;
+                document.getElementById('gradeP2').value = student.p2;
+                document.getElementById('gradeExame').value = student.exame;
+                document.getElementById('gradeRecurso').value = student.recurso;
+                document.getElementById('gradeEspecial').value = student.especial;
+                
+                openModal('gradesModal');
+            }
+        }
+
+        function calculateContinuousP1() {
+            const inputs = document.querySelectorAll('.eval-input');
+            let sum = 0;
+            let count = inputs.length;
+            inputs.forEach(inp => {
+                sum += parseFloat(inp.value) || 0;
+            });
+            const p1 = count > 0 ? (sum / count) : 0;
+            document.getElementById('gradeP1').value = p1.toFixed(2);
+        }
+
+        function prepareSaveGrades(e) {
+            e.preventDefault();
+            closeModal('gradesModal');
+            showConfirmationModal(
+                'Guardar Notas',
+                'Deseja validar e gravar o lançamento destas provas?',
+                () => {
+                    const studentId = parseInt(document.getElementById('gradeStudentId').value);
+                    const student = db.students.find(s => s.id === studentId);
+                    
+                    const inputs = document.querySelectorAll('.eval-input');
+                    let evalsArr = [];
+                    inputs.forEach(inp => {
+                        evalsArr.push(parseFloat(inp.value) || 0);
+                    });
+                    student.evals = evalsArr;
+                    
+                    const p1 = parseFloat(document.getElementById('gradeP1').value);
+                    const p2 = parseFloat(document.getElementById('gradeP2').value);
+                    const exame = parseFloat(document.getElementById('gradeExame').value);
+                    const recurso = parseFloat(document.getElementById('gradeRecurso').value);
+                    const especial = parseFloat(document.getElementById('gradeEspecial').value);
+
+                    if(p2 > 0 && p1 <= 0) {
+                        alert("Erro: Só é permitido lançar a 2ª Prova Parcelar se a 1ª Prova Parcelar estiver concluída!");
+                        return;
+                    }
+
+                    student.p1 = p1;
+                    student.p2 = p2;
+                    student.exame = exame;
+                    student.recurso = recurso;
+                    student.especial = especial;
+
+                    saveToLocalStorage();
+                    renderAll();
+                }
+            );
+        }
+
+        function confirmResetSystemData() {
+            showConfirmationModal(
+                'Repor Sistema',
+                'Atenção: Todos os dados guardados no LocalStorage serão eliminados e zerados. Deseja prosseguir?',
+                () => {
+                    localStorage.removeItem('academogest_db');
+                    db = { institutions: [], courses: [], disciplines: [], students: [] };
+                    renderAll();
+                    alert("Sistema reposto com sucesso (dados zerados).");
+                },
+                true
+            );
+        }
+
+        function calculateAcademicStatus(s) {
+            const mediaParcial = (s.p1 + s.p2) / 2;
+            let statusBadge = '';
+
+            if (mediaParcial >= 14) {
+                statusBadge = `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold">Dispensado ($\ge 14$)</span>`;
+            } else {
+                const mediaFinalComExame = (mediaParcial + s.exame) / 2;
+                if (mediaFinalComExame > 9) {
+                    statusBadge = `<span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">Aprovado por Exame</span>`;
+                } else {
+                    if (s.recurso <= 9) {
+                        if (s.especial > 9) {
+                            statusBadge = `<span class="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold">Aprov. Exame Especial</span>`;
+                        } else {
+                            statusBadge = `<span class="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-xs font-semibold">Reprovado ($\le 9$)</span>`;
+                        }
+                    } else {
+                        statusBadge = `<span class="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">Aprovado em Recurso</span>`;
+                    }
+                }
+            }
+            return { mediaParcial, statusBadge };
+        }
+
+        function updateDashboardFilters() {
+            renderAll();
+        }
+
+        let performanceChartInstance = null;
+
+        function renderAll() {
+            const fInst = document.getElementById('dashFilterInst')?.value || '';
+            const fCourse = document.getElementById('dashFilterCourse')?.value || '';
+            const fTurma = document.getElementById('dashFilterTurma')?.value || '';
+            const fTurno = document.getElementById('dashFilterTurno')?.value || '';
+            const fSala = document.getElementById('dashFilterSala')?.value || '';
+
+            const sInst = document.getElementById('studentFilterInst')?.value || '';
+            const sCourse = document.getElementById('studentFilterCourse')?.value || '';
+            const sTurma = document.getElementById('studentFilterTurma')?.value || '';
+            const sTurno = document.getElementById('studentFilterTurno')?.value || '';
+            const sSala = document.getElementById('studentFilterSala')?.value || '';
+            const sDisc = document.getElementById('studentFilterDisc')?.value || '';
+
+            const filteredStudentsTab = db.students.filter(s => {
+                let match = (!sInst || s.institution === sInst) &&
+                            (!sCourse || s.course === sCourse) &&
+                            (!sTurma || s.turma === sTurma) &&
+                            (!sTurno || s.turno === sTurno) &&
+                            (!sSala || s.sala === sSala);
+                if (match && sDisc) {
+                    const discObj = db.disciplines.find(d => d.name === sDisc);
+                    if (discObj) {
+                        match = (discObj.institution === s.institution && discObj.course === s.course);
+                    }
+                }
+                return match;
+            });
+
+            const gInst = document.getElementById('gradeFilterInst')?.value || '';
+            const gCourse = document.getElementById('gradeFilterCourse')?.value || '';
+            const gTurma = document.getElementById('gradeFilterTurma')?.value || '';
+            const gTurno = document.getElementById('gradeFilterTurno')?.value || '';
+            const gSala = document.getElementById('gradeFilterSala')?.value || '';
+            const gDisc = document.getElementById('gradeFilterDisc')?.value || '';
+
+            const filteredGradesTab = db.students.filter(s => {
+                let match = (!gInst || s.institution === gInst) &&
+                            (!gCourse || s.course === gCourse) &&
+                            (!gTurma || s.turma === gTurma) &&
+                            (!gTurno || s.turno === gTurno) &&
+                            (!gSala || s.sala === gSala);
+                if (match && gDisc) {
+                    const discObj = db.disciplines.find(d => d.name === gDisc);
+                    if (discObj) {
+                        match = (discObj.institution === s.institution && discObj.course === s.course);
+                    }
+                }
+                return match;
+            });
+
+            const filteredDashboard = db.students.filter(s => {
+                return (!fInst || s.institution === fInst) &&
+                       (!fCourse || s.course === fCourse) &&
+                       (!fTurma || s.turma === fTurma) &&
+                       (!fTurno || s.turno === fTurno) &&
+                       (!fSala || s.sala === fSala);
+            });
+
+            // Metrics
+            document.getElementById('stat-total-students').innerText = filteredDashboard.length;
+            document.getElementById('stat-total-institutions').innerText = db.institutions.length;
+            document.getElementById('stat-total-disciplines').innerText = db.disciplines.length;
+            document.getElementById('stat-dispense-rate').innerText = filteredDashboard.length ? Math.round((filteredDashboard.filter(s => ((s.p1 + s.p2)/2) >= 14).length / filteredDashboard.length) * 100) + '%' : '0%';
+
+            // Institutions Table
+            document.getElementById('institutionsTableBody').innerHTML = db.institutions.map(i => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-mono text-xs text-slate-500">${i.id}</td>
+                    <td class="p-4 font-semibold text-slate-800">${i.name}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-semibold">${i.acronym}</span></td>
+                    <td class="p-4 text-slate-600">${i.location}</td>
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="openInstitutionModal(${i.id})" title="Editar" class="text-blue-600 hover:text-blue-800 text-xs font-medium"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteInstitution(${i.id})" title="Eliminar" class="text-rose-600 hover:text-rose-800 text-xs font-medium"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhuma instituição registada.</td></tr>`;
+
+            // Courses Grid
+            document.getElementById('coursesGrid').innerHTML = db.courses.map(c => `
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold">${c.institution}</span>
+                            <span class="text-xs text-slate-500"><i class="fa-solid fa-door-open mr-1"></i>${c.sala}</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900">${c.name}</h3>
+                        <p class="text-sm text-slate-500 mt-1">Turma: <strong>${c.turma}</strong> &bull; Turno: <strong>${c.turno}</strong></p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span class="text-emerald-600 font-medium"><i class="fa-solid fa-circle-check mr-1"></i>Ativo</span>
+                        <div class="space-x-2">
+                            <button onclick="openCourseModal(${c.id})" class="text-blue-600 hover:underline">Editar</button>
+                            <button onclick="deleteCourse(${c.id})" class="text-rose-600 hover:underline">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') || `<div class="col-span-full p-6 text-center text-slate-400 bg-white border border-slate-200 rounded-2xl">Nenhum curso ou turma registado.</div>`;
+
+            // Disciplines Table
+            document.getElementById('disciplinesTableBody').innerHTML = db.disciplines.map(d => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-semibold text-slate-800">${d.name}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs">${d.institution}</span></td>
+                    <td class="p-4 text-slate-700">${d.course}</td>
+                    <td class="p-4 text-slate-600 text-xs">${d.model} (${d.numEval || 1} avaliações)</td>
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="openDisciplineModal(${d.id})" class="text-blue-600 hover:text-blue-800 text-xs font-medium"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteDiscipline(${d.id})" class="text-rose-600 hover:text-rose-800 text-xs font-medium"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhuma disciplina registada.</td></tr>`;
+
+            // Students Table
+            document.getElementById('studentsTableBody').innerHTML = filteredStudentsTab.map(s => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-mono text-xs text-blue-600 font-semibold">${s.number}</td>
+                    <td class="p-4 font-semibold text-slate-800">${s.name}</td>
+                    <td class="p-4 text-slate-700">${s.institution} &bull; <span class="text-slate-500">${s.course}</span></td>
+                    <td class="p-4 text-slate-600 text-xs">${s.turma} / ${s.turno} / ${s.sala}</td>
+                    <td class="p-4 text-right space-x-2">
+                        <button onclick="openStudentModal(${s.id})" title="Editar" class="text-blue-600 hover:text-blue-800 p-1.5"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteStudent(${s.id})" title="Eliminar" class="text-rose-600 hover:text-rose-800 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('') || `<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum estudante encontrado com os filtros selecionados.</td></tr>`;
+
+            // Grades Table
+            document.getElementById('gradesTableBody').innerHTML = filteredGradesTab.map(s => {
+                const calc = calculateAcademicStatus(s);
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-800">${s.name} <span class="block text-xs font-mono text-slate-400">${s.number}</span></td>
+                        <td class="p-4">${s.p1}</td>
+                        <td class="p-4">${s.p2}</td>
+                        <td class="p-4 font-bold text-blue-600">${calc.mediaParcial.toFixed(1)}</td>
+                        <td class="p-4">${s.exame}</td>
+                        <td class="p-4">${s.recurso}</td>
+                        <td class="p-4">${s.especial}</td>
+                        <td class="p-4">${calc.statusBadge}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="openGradeModal(${s.id})" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-medium transition">Lançar/Editar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('') || `<tr><td colspan="9" class="p-6 text-center text-slate-400">Nenhum registo de notas disponível.</td></tr>`;
+
+            updateChartData(filteredDashboard);
+        }
+
+        function updateChartData(filteredStudents) {
+            let dispensados = 0, aprovExame = 0, aprovRecurso = 0, aprovEspecial = 0, reprovados = 0;
+            
+            filteredStudents.forEach(s => {
+                const mediaParcial = (s.p1 + s.p2) / 2;
+                if (mediaParcial >= 14) dispensados++;
+                else if ((mediaParcial + s.exame) / 2 > 9) aprovExame++;
+                else if (s.recurso > 9) aprovRecurso++;
+                else if (s.especial > 9) aprovEspecial++;
+                else reprovados++;
+            });
+
+            if(performanceChartInstance) {
+                performanceChartInstance.data.datasets[0].data = [dispensados, aprovExame, aprovRecurso, aprovEspecial, reprovados];
+                performanceChartInstance.update();
+            }
+        }
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            populateSelects();
+            renderAll();
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            performanceChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Dispensados', 'Aprov. Exame', 'Aprov. Recurso', 'Aprov. Especial', 'Reprovados'],
+                    datasets: [{
+                        label: 'Nº de Estudantes',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#f43f5e'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#e2e8f0' }, ticks: { color: '#64748b', precision: 0 } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
